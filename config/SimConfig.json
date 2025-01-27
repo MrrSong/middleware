@@ -1,0 +1,161 @@
+﻿{
+    "time_scale": 1,
+    "wave_degree": 1,
+    "weather":1,
+    "hour":13,
+    "x_leftTop_longtitude": 134,
+    "y_leftTop_latitude": 11,
+    "x_rightBottom_longtitude": 135,
+    "y_rightBottom_latitude": 10,
+    "boats": [
+        {
+            "id": 1,
+            "type": 1,
+            "team": 0,
+            "x_longtitude": 134.500,
+            "y_latitude": 10.5,
+            "startAngle": 0,
+            "health": 100,
+            "gas_outputRate":100,
+            "attack_radius": 100,
+            "attack": 20
+        }
+    ],
+    "obstacles": [
+        {
+            "id": 101,
+            "type": 101,
+            "x_longtitude": 134.50,
+            "y_latitude": 10.505,
+            "startAngle": 0
+        },
+        {
+            "id": 102,
+            "type": 102,
+            "x_longtitude": 134.505,
+            "y_latitude": 10.505,
+            "startAngle": 0
+        },
+        {
+            "id": 103,
+            "type": 103,
+            "x_longtitude": 134.510,
+            "y_latitude": 10.505,
+            "startAngle": 0
+        },
+        {
+            "id": 104,
+            "type": 104,
+            "x_longtitude": 134.515,
+            "y_latitude": 10.505,
+            "startAngle": 0
+        },
+        {
+            "id": 105,
+            "type": 105,
+            "x_longtitude": 134.520,
+            "y_latitude": 10.505,
+            "startAngle": 0
+        },
+        {
+            "id": 106,
+            "type": 106,
+            "x_longtitude": 134.525,
+            "y_latitude": 10.5,
+            "startAngle": 0
+        },
+        {
+            "id": 107,
+            "type": 107,
+            "x_longtitude": 134.530,
+            "y_latitude": 10.505,
+            "startAngle": 0
+        },
+        {
+            "id": 108,
+            "type": 108,
+            "x_longtitude": 134.535,
+            "y_latitude": 10.505,
+            "startAngle": 0,
+            "length": 0,
+            "width": 0,
+            "radius": 0,
+            "depth": 0
+        },
+        {
+            "id": 109,
+            "type": 109,
+            "x_longtitude": 134.540,
+            "y_latitude": 10.5,
+            "startAngle": 0
+        },
+        {
+            "id": 110,
+            "type": 110,
+            "x_longtitude": 134.545,
+            "y_latitude": 10.505,
+            "startAngle": 0
+        },
+        {
+            "id": 111,
+            "type": 111,
+            "x_longtitude": 134.550,
+            "y_latitude": 10.505,
+            "startAngle": 0
+        },
+        {
+            "id": 112,
+            "type": 112,
+            "x_longtitude": 134.555,
+            "y_latitude": 10.5,
+            "startAngle": 0
+        },
+        {
+            "id": 113,
+            "type": 113,
+            "x_longtitude": 134.560,
+            "y_latitude": 10.505,
+            "startAngle": 0
+        },
+        {
+            "id": 114,
+            "type": 114,
+            "x_longtitude": 134.565,
+            "y_latitude": 10.505,
+            "startAngle": 0
+        },
+        {
+            "id": 115,
+            "type": 115,
+            "x_longtitude": 134.570,
+            "y_latitude": 10.505,
+            "startAngle": 0
+        },
+
+        {
+            "id": 116,
+            "type": 116,
+            "x_longtitude": 134.495,
+            "y_latitude": 10.505,
+            "startAngle": 0
+        },
+
+        {
+            "id": 101,
+            "type": 101,
+            "x_longtitude": 134.50,
+            "y_latitude": 10.505,
+            "startAngle": 0
+        }
+    ],
+    "map_max_distance": 2000,
+    "task_area_center_longtitude": 134.48,
+    "task_area_center_latitude": 10.48,
+    "task_area_radius": 5000,
+    "gas_p":0.1,
+    "gas_i":0.001,
+    "gas_d":0.5,
+    "steering_p":0.15,
+    "steering_i":0.001,
+    "steering_d":0.13
+}

@@ -4,6 +4,26 @@ from dataclasses import dataclass, field
 
 
 @dataclass
+class Task:
+    TASK_STOP: int = 0     # 任务结束
+    TASK_START: int = 1    # 任务开始
+
+    def task_start_str(self) -> str:
+        params = [
+            26,  # 固定值
+            self.TASK_START
+        ]
+        return f"[{', '.join(map(str, params))}]"  # 转换为字符串并返回
+
+    def task_end_str(self) -> str:
+        params = [
+            26,  # 固定值
+            self.TASK_STOP
+        ]
+        return f"[{', '.join(map(str, params))}]"  # 转换为字符串并返回
+
+
+@dataclass
 class GPSPoint:
     longitude: float      # 经度
     latitude: float       # 纬度
@@ -111,6 +131,7 @@ class BoatMessage:
 @dataclass
 # 定义 BoatMessage 类
 class Mission:
+    task: Task = Task()                                 # 任务启停
     motion_control: MotionControl = MotionControl()     # 运动控制信息
     boat_message: BoatMessage = BoatMessage()           # 船只信息
 
@@ -131,7 +152,7 @@ class Singleton:
             if cls._instance is None:
                 cls._instance = super(Singleton, cls).__new__(cls)
                 # 初始化 Mission 实例
-                cls._mission = Mission(motion_control=MotionControl(), boat_message=BoatMessage())
+                cls._mission = Mission()
         return cls._instance
 
     @property

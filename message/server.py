@@ -1,4 +1,5 @@
 import socket
+from log.log import logger
 
 
 class UDPServer:
@@ -6,7 +7,7 @@ class UDPServer:
         self.server_address = (host, port)
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.server_socket.bind(self.server_address)
-        print(f"UDP 服务端已启动，绑定地址 {self.server_address}。")
+        logger.info(f"UDP 服务端已启动，绑定地址 {self.server_address}")
 
     def receive_message(self):
         # 使用阻塞方式接收数据

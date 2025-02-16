@@ -1,4 +1,5 @@
 import json
+from log.log import logger
 
 
 class ParseJSON:
@@ -18,7 +19,7 @@ class ParseJSON:
             # 修改为 utf-8-sig 来自动处理 BOM
             with open(self.file_path, 'r', encoding='utf-8-sig') as file:
                 self.data = json.load(file)
-                print(f"加载配置文件 '{self.file_path}' 成功！")
+                logger.info(f"加载配置文件 '{self.file_path}' 成功！")
         except Exception as e:
             # 如果打开失败，抛出断言错误
             raise AssertionError(f"加载配置文件 '{self.file_path}' 失败！ {e}")

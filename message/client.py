@@ -7,6 +7,7 @@ class UDPClient:
     def __init__(self, host='192.168.2.100', port=2001):
         self.server_address = (host, port)
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        logger.info(f"UDP 客户端已启动，绑定地址 {self.server_address}")
 
     async def send_message(self, message):
         # 使用 async 方法发送消息

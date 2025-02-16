@@ -23,7 +23,7 @@ async def receive_data(server):
             for boat_message in parsed_data:
                 if hasattr(singleton_instance, 'mission'):
                     singleton_instance.mission.boat_message = boat_message
-                    logger.debug(singleton_instance.mission.boat_message)
+                    # logger.debug(singleton_instance.mission.boat_message)
                 else:
                     raise AttributeError("singleton_instance is not initialized")
 
@@ -40,16 +40,19 @@ async def process_data(client):
     config_data_str = json.dumps(config_data, indent=4, ensure_ascii=False)
 
     await client.send_message(config_data_str)
-    await client.send_message("[26, 1]")
 
     if hasattr(singleton_instance, 'mission'):
-        motion_control: MotionControl = singleton_instance.mission.boat_message
+        mission = singleton_instance.mission
+        await client.send_message(mission.task.task_start_str())  # 发送 任务开始 指令
+        await asyncio.sleep(5)
+
+        motion_control: MotionControl = mission.motion_control
         motion_control.usv_id = 1
         motion_control.motion_control_mode = 3
         motion_control.throttle_or_speed = 10.0
         motion_control.rudder_angle_or_heading = 0
         motion_control_str = motion_control.to_string()  # 类型转换
-        await client.send_message(motion_control_str)  # 发送
+        await client.send_message(motion_control_str)  # 发送 usv控制 指令
 
     else:
         raise AttributeError("singleton_instance is not initialized")

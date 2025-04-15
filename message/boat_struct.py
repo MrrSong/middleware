@@ -31,6 +31,14 @@ class GPSPoint:
 
 
 @dataclass
+class RectangularTaskArea:
+    bottom_longitude: float = 122.745196
+    bottom_latitude: float = 30.796787
+    top_longitude: float = 122.766097
+    top_latitude: float = 30.814828
+
+
+@dataclass
 class MotionControl:
     usv_id: int = 0                                          # 艇全局编号
     task_type: int = 0                                       # 艇执行任务类型
@@ -127,13 +135,42 @@ class BoatMessage:
             health=packet[19]
         )
 
+    def to_string(self) -> str:
+        # 先把 BoatMessage 实例的属性提取出来
+        params = [
+            self.usv_id,
+            self.longitude,
+            self.latitude,
+            self.yaw_angle,
+            self.yaw_velocity,
+            self.yaw_acceleration,
+            self.pitch_angle,
+            self.roll_angle,
+            self.forward_speed,
+            self.forward_acceleration,
+            self.lateral_speed,
+            self.lateral_acceleration,
+            self.heading_angle,
+            self.current_state,
+            self.task_type,
+            self.target_id,
+            self.control_mode,
+            self.current_control_value,
+            self.current_throttle,
+            self.health
+        ]
+
+        # 拼接成字符串
+        return f"[{', '.join(map(str, params))}]"
+
 
 @dataclass
 # 定义 BoatMessage 类
 class Mission:
-    task: Task = Task()                                 # 任务启停
-    motion_control: MotionControl = MotionControl()     # 运动控制信息
-    boat_message: BoatMessage = BoatMessage()           # 船只信息
+    task: Task = Task()                                     # 任务启停
+    task_area: RectangularTaskArea = RectangularTaskArea()  # 任务区域
+    motion_control: MotionControl = MotionControl()         # 运动控制信息
+    boat_message: BoatMessage = BoatMessage()               # 船只信息
 
 
 class Singleton:

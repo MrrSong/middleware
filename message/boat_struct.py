@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import List
 import threading
 
+
 @dataclass
 class Task:
     TASK_STOP: int = 0     # 任务结束
@@ -35,6 +36,34 @@ class RectangularTaskArea:
     bottom_latitude: float = 30.796787
     top_longitude: float = 122.766097
     top_latitude: float = 30.814828
+
+
+@dataclass
+class Visualization:
+    VISUAL_FLAG: int = 0       # 可视化标志
+
+    def visual_flag_str(self) -> str:
+        params = [
+            10,  # 固定值
+            self.VISUAL_FLAG
+        ]
+        return f"[{', '.join(map(str, params))}]"  # 转换为字符串并返回
+
+
+@dataclass
+class UsvPosture:
+    x_m: float = 0.0             # x m/s
+    y_m: float = 0.0             # y m/s
+    heading_degree: float = 0.0  # 艏向角 °
+
+    def to_string(self) -> str:
+        params = [
+            11,  # 固定值
+            self.x_m,
+            self.y_m,
+            self.heading_degree
+        ]
+        return f"[{', '.join(map(str, params))}]"  # 转换为字符串并返回
 
 
 @dataclass
@@ -170,6 +199,8 @@ class Mission:
     task_area: RectangularTaskArea = RectangularTaskArea()  # 任务区域
     motion_control: MotionControl = MotionControl()         # 运动控制信息
     boat_message: BoatMessage = BoatMessage()               # 船只信息
+    usv_posture: UsvPosture = UsvPosture()                  # 物理位置
+    visual_flag: Visualization = Visualization()            # 可视化标志
 
 
 class Singleton:

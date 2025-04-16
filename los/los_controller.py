@@ -106,6 +106,13 @@ class LOSController:
 
             self.navigation_control = self._get_line_tracking_control()
 
+    def get_route_angle(self):
+        angle = self.calculate_bearing(self.single_path_info.fFirstPoint, self.single_path_info.fSecondPoint)
+        return angle
+
+    def get_route_speed(self):
+        return to_mps(self.single_path_info.fSpeedK)
+
     def _get_line_tracking_info(self):
         start_point = self.single_path_info.fFirstPoint
         end_point = self.single_path_info.fSecondPoint

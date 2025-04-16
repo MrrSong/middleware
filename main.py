@@ -1,15 +1,18 @@
 import os
 import json
+import time
 import socket
 import threading
+from geopy import Point
 from log.log import logger
 from message.server import UDPServer
 from message.client import UDPClient
 from message.parse import parse_packet
-from message.boat_struct import MotionControl, Mission, Singleton
+from message.boat_struct import RectangularTaskArea, MotionControl, Mission, Singleton
 from config.parse_json import ParseJSON
 from convert.coordinate_conversion import GeoConverter
 from log.reader import Reader
+from los.los_controller import LOSController
 from common import (
     record_positions,
     visualize_positions
@@ -20,13 +23,14 @@ from threading import Lock
 lock = Lock()
 
 # 在全局作用域创建单例
+# 在全局作用域创建单例
 singleton_instance: Mission = Mission()
+task_area = RectangularTaskArea()
+converter = GeoConverter(task_area)
 
-# 转发地址
-forward_address = ('192.168.2.100', 4001)
 
 # 创建转发用的 UDP 套接字
-forward_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+forward_client = UDPClient(host='192.168.2.100', port=4001)
 
 
 def update_singleton_instance(boat_message):
@@ -35,9 +39,14 @@ def update_singleton_instance(boat_message):
         if hasattr(singleton_instance, 'mission'):
             singleton_instance.mission.boat_message = boat_message
             # 转发更新后的数据
-            boat_message_str = boat_message.to_string()
-            encoded_message = boat_message_str.encode()
-            forward_socket.sendto(encoded_message, forward_address)
+            x_m, y_m = converter.latlon_to_meters_continuous(Point(latitude=boat_message.latitude,
+                                                                   longitude=boat_message.longitude))
+            heading_degree = boat_message.heading_angle
+            singleton_instance.mission.usv_posture.x_m = x_m
+            singleton_instance.mission.usv_posture.y_m = y_m
+            singleton_instance.mission.usv_posture.heading_degree = heading_degree
+            send_message = singleton_instance.mission.usv_posture.to_string()
+            forward_client.send_message(send_message)
         else:
             raise AttributeError("singleton_instance is not initialized")
 
@@ -65,15 +74,17 @@ def process_data(client):
 
     client.send_message(config_data_str)
 
-    control_str = 'scatter'  # scatter continuous
+    control_str = 'continuous'  # scatter continuous
 
     if hasattr(singleton_instance, 'mission'):
         mission: Mission = singleton_instance.mission
-        converter = GeoConverter(mission.task_area)
 
         client.send_message(mission.task.task_start_str())  # 发送 任务开始 指令
-        import time
         time.sleep(5)
+
+        # 发送可视化标志
+        singleton_instance.mission.visual_flag.VISUAL_FLAG = 1
+        forward_client.send_message(singleton_instance.mission.visual_flag.visual_flag_str())
 
         if control_str == 'scatter':
             json_file_path = os.path.join('.', 'log', 'metrics_20250409_1634', 'metrics.json')  # 读取指标的路径
@@ -84,15 +95,22 @@ def process_data(client):
             pos_list = content['pos_list']  # 提取 pos_list 列
             recorded_positions = record_positions(actions, pos_list)
             positions = converter.meters_to_latlon_scatter_list(recorded_positions)
+            los_controller = LOSController()
+            usv_ins = singleton_instance.mission.boat_message
+            los_controller.get_path_info(positions, usv_ins)
 
             while True:
                 mission: Mission = singleton_instance.mission
+                usv_ins = mission.boat_message
+                los_controller.get_usv_info(usv_ins)
+                los_controller.tick()
+                navigation_control = los_controller.navigation_control
 
                 motion_control: MotionControl = mission.motion_control
                 motion_control.usv_id = 1
                 motion_control.motion_control_mode = 3
-                motion_control.throttle_or_speed = 20.0
-                motion_control.rudder_angle_or_heading = 180
+                motion_control.throttle_or_speed = navigation_control.fForwardVel
+                motion_control.rudder_angle_or_heading = navigation_control.fTurnAngle
                 motion_control_str = motion_control.to_string()  # 类型转换
                 client.send_message(motion_control_str)  # 发送 usv 控制 指令
                 time.sleep(0.1)  # sleep 0.1s
@@ -104,7 +122,7 @@ def process_data(client):
                 motion_control.usv_id = 1
                 motion_control.motion_control_mode = 3
                 motion_control.throttle_or_speed = 20.0
-                motion_control.rudder_angle_or_heading = 0
+                motion_control.rudder_angle_or_heading = 180
                 motion_control_str = motion_control.to_string()  # 类型转换
                 client.send_message(motion_control_str)  # 发送 usv 控制 指令
                 time.sleep(0.1)  # sleep 0.1s

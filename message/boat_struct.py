@@ -1,7 +1,6 @@
-import asyncio
-from typing import List
 from dataclasses import dataclass, field
-
+from typing import List
+import threading
 
 @dataclass
 class Task:
@@ -175,7 +174,7 @@ class Mission:
 
 class Singleton:
     _instance = None
-    _lock = asyncio.Lock()
+    _lock = threading.Lock()
     _mission: Mission = None  # 单例管理的核心数据
 
     def __new__(cls, *args, **kwargs):
@@ -184,8 +183,8 @@ class Singleton:
         return cls._instance
 
     @classmethod
-    async def create(cls, motion_control: MotionControl = None, boat_message: BoatMessage = None):
-        async with cls._lock:
+    def create(cls, motion_control: MotionControl = None, boat_message: BoatMessage = None):
+        with cls._lock:
             if cls._instance is None:
                 cls._instance = super(Singleton, cls).__new__(cls)
                 # 初始化 Mission 实例
@@ -201,10 +200,10 @@ class Singleton:
 
 
 # 使用示例
-async def main():
+def main():
     # 创建单例实例并初始化 Mission
-    singleton1 = await Singleton.create()
-    singleton2 = await Singleton.create()
+    singleton1 = Singleton.create()
+    singleton2 = Singleton.create()
 
     # 检查单例行为
     print(singleton1 is singleton2)  # 输出: True
@@ -216,7 +215,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
-
-
-
+    main()

@@ -23,8 +23,8 @@ def parse_packet(packet_str, logger):
             boat_message = packet_list[start_index:end_index]
             parsed_data.append(BoatMessage.from_packet(boat_message))
 
-        # for boat_message in parsed_data:
-            # logger.info(boat_message.__dict__)
+    # for boat_message in parsed_data:
+    #     logger.info(boat_message.__dict__)
 
     return parsed_data, timestamp
 

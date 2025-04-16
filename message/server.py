@@ -15,10 +15,12 @@ class UDPServer:
 
     def send_message(self, message, client_address):
         # 使用阻塞方式发送数据
+        if isinstance(message, str):
+            message = message.encode()
         self.server_socket.sendto(message, client_address)
 
     @staticmethod
-    def handle_message(self, message):
+    def handle_message(message):
         # 处理消息的逻辑，可以根据实际需求进行修改
         return f"服务端收到：{message}"
 

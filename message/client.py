@@ -8,10 +8,11 @@ class UDPClient:
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         logger.info(f"UDP 客户端已启动，绑定地址 {self.server_address}")
 
-    def send_message(self, message):
+    def send_message(self, message, printf=False):
         # 发送消息到服务端
         self.client_socket.sendto(message.encode(), self.server_address)
-        logger.info(f"send {message}")
+        if printf:
+            logger.info(f"send {message}")
 
     def receive_message(self):
         # 接收服务端的回复

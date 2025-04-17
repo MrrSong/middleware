@@ -1,6 +1,6 @@
-from dataclasses import dataclass, field
-from typing import List
 import threading
+from typing import List
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -31,6 +31,13 @@ class GPSPoint:
 
 
 @dataclass
+class LocalPoint:
+    x_m: float            # x m
+    y_m: float            # y m
+    speed: float          # 速度 m/s
+
+
+@dataclass
 class RectangularTaskArea:
     bottom_longitude: float = 122.745196
     bottom_latitude: float = 30.796787
@@ -40,12 +47,14 @@ class RectangularTaskArea:
 
 @dataclass
 class Visualization:
-    VISUAL_FLAG: int = 0       # 可视化标志
+    visual_flag: int = 0       # 可视化标志
+    feedback_flag: int = 0     # 报文反馈标志
 
-    def visual_flag_str(self) -> str:
+    def to_string(self) -> str:
         params = [
             10,  # 固定值
-            self.VISUAL_FLAG
+            self.visual_flag,
+            self.feedback_flag
         ]
         return f"[{', '.join(map(str, params))}]"  # 转换为字符串并返回
 
@@ -55,15 +64,34 @@ class UsvPosture:
     x_m: float = 0.0             # x m/s
     y_m: float = 0.0             # y m/s
     heading_degree: float = 0.0  # 艏向角 °
+    feedback_flag: int = 0       # 报文反馈标志
 
     def to_string(self) -> str:
         params = [
             11,  # 固定值
             self.x_m,
             self.y_m,
-            self.heading_degree
+            self.heading_degree,
+            self.feedback_flag
         ]
         return f"[{', '.join(map(str, params))}]"  # 转换为字符串并返回
+
+
+@dataclass
+class Path:
+    point_num: int = 0  # 航点个数
+    path_points: List[LocalPoint] = field(default_factory=list)  # 航点信息
+    feedback_flag: int = 0  # 报文反馈标志
+
+    def to_string(self) -> str:
+        params = [
+            12,
+            self.point_num
+        ]
+        for point in self.path_points:
+            params.extend([point.x_m, point.y_m, point.speed])
+        params.append(self.feedback_flag)
+        return f"[{', '.join(map(str, params))}]"
 
 
 @dataclass
@@ -105,9 +133,9 @@ class MotionControl:
         # 对于航点信息，假设每个航点包含经纬度、速度或时间
         for i, waypoint in enumerate(self.waypoints, start=1):
             params.extend([
-                waypoint.longitude, # para(n*3+8): 航点n 经度
-                waypoint.latitude,  # para(n*3+9): 航点n 纬度
-                waypoint.speed      # para(n*3+10): 航点n 到该航点的速度或时间
+                waypoint.longitude,  # para(n*3+8): 航点n 经度
+                waypoint.latitude,   # para(n*3+9): 航点n 纬度
+                waypoint.speed       # para(n*3+10): 航点n 到该航点的速度或时间
             ])
 
         # 拼接成字符串
@@ -166,6 +194,7 @@ class BoatMessage:
     def to_string(self) -> str:
         # 先把 BoatMessage 实例的属性提取出来
         params = [
+            21,
             self.usv_id,
             self.longitude,
             self.latitude,
@@ -201,6 +230,7 @@ class Mission:
     boat_message: BoatMessage = BoatMessage()               # 船只信息
     usv_posture: UsvPosture = UsvPosture()                  # 物理位置
     visual_flag: Visualization = Visualization()            # 可视化标志
+    path: Path = Path()                                     # 航路信息
 
 
 class Singleton:

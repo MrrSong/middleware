@@ -14,12 +14,15 @@ from convert.coordinate_conversion import GeoConverter
 from log.reader import Reader
 from los.los_controller import LOSController
 from common import (
+    batch_pixel_to_meter,
     record_positions,
-    visualize_positions
+    visualize_positions,
+    visualize_positions_scatter
 )
 from message.boat_struct import (
     Mission,
     Singleton,
+    PathPoint,
     LocalPoint,
     MotionControl,
     RectangularTaskArea
@@ -71,7 +74,7 @@ def update_singleton_instance(message, header):
             # 转发 航路信息
             if singleton_instance.mission.path.point_num != 0 and singleton_instance.mission.path.feedback_flag == 0:
                 send_message = singleton_instance.mission.path.to_string()
-                forward_client.send_message(send_message)
+                forward_client.send_message(send_message, True)
         else:
             raise AttributeError("singleton_instance is not initialized")
 
@@ -99,7 +102,7 @@ def process_data(client):
     # 将配置文件转化为字符串
     config_data_str = json.dumps(config_data, indent=4, ensure_ascii=False)
 
-    client.send_message(config_data_str)
+    client.send_message(config_data_str, True)
 
     control_str = 'test'  # scatter continuous test
 
@@ -108,40 +111,15 @@ def process_data(client):
         max_speed = 20
 
         client.send_message(mission.task.task_start_str())  # 发送 任务开始 指令
-        while True:
+
+        while True:  # 与 模拟器 通讯建立后跳出
             if singleton_instance.mission.visual_flag.visual_flag == 0:
                 time.sleep(0.5)
             else:
                 break
 
         if control_str == 'scatter':
-            json_file_path = os.path.join('.', 'log', 'metrics_20250409_1634', 'metrics.json')  # 读取指标的路径
-            reader = Reader(json_file_path)  # 创建 JSONFileReader 类的实例
-            content = reader.read()  # 读取 JSON 文件内容
-
-            actions = content['actions']  # 提取 actions 列
-            pos_list = content['pos_list']  # 提取 pos_list 列
-            recorded_positions = record_positions(actions, pos_list)
-            positions = converter.meters_to_latlon_scatter_list(recorded_positions)
-            los_controller = LOSController()
-            usv_ins = singleton_instance.mission.boat_message
-            los_controller.get_path_info(positions, usv_ins)
-
-            while True:
-                mission: Mission = singleton_instance.mission
-                usv_ins = mission.boat_message
-                los_controller.get_usv_info(usv_ins)
-                los_controller.tick()
-                navigation_control = los_controller.navigation_control
-
-                motion_control: MotionControl = mission.motion_control
-                motion_control.usv_id = 1
-                motion_control.motion_control_mode = 3
-                motion_control.throttle_or_speed = navigation_control.fForwardVel
-                motion_control.rudder_angle_or_heading = navigation_control.fTurnAngle
-                motion_control_str = motion_control.to_string()  # 类型转换
-                client.send_message(motion_control_str)  # 发送 usv 控制 指令
-                time.sleep(0.1)  # sleep 0.1s
+            pass
         elif control_str == 'continuous':
             while True:
                 mission: Mission = singleton_instance.mission
@@ -159,25 +137,44 @@ def process_data(client):
             reader = Reader(json_file_path)  # 创建 JSONFileReader 类的实例
             content = reader.read()  # 读取 JSON 文件内容
 
-            actions = content['actions']  # 提取 actions 列
-            pos_list = content['pos_list']  # 提取 pos_list 列
-            recorded_positions = record_positions(actions, pos_list)
-            path = [LocalPoint(x_m=point[0], y_m=point[1], speed=max_speed) for point in recorded_positions]
+            actions = content['actions']  # 提取 pos_list列
+            pos_list = content['pos_list']  # 提取 pos_list列
+            pixel_positions = record_positions(actions, pos_list)  # scatter 的像素坐标
+            swapped_positions = [(y, x) for x, y in pixel_positions]  # # 互换 x 和 y 坐标
+
+            physical_positions = batch_pixel_to_meter(swapped_positions, 20)  # 物理位置
+            geographic_positions = converter.meters_to_latlon_scatter_list(physical_positions)  # 地理位置
+
+            # 初始化 LOS
+            los_controller = LOSController()
+            usv_ins = singleton_instance.mission.boat_message
+            los_controller.get_path_info(geographic_positions, usv_ins)
+
+            path = converter.latlon_to_meters_continuous_list(geographic_positions)  # 物理位置 左下为原点
+            path = [LocalPoint(x_m=point[0], y_m=point[1], speed=max_speed) for point in path]
 
             singleton_instance.mission.path.point_num = len(path)
             singleton_instance.mission.path.path_points = path
 
             while True:
                 mission: Mission = singleton_instance.mission
+                usv_ins = mission.boat_message
+                # LOS 赋值 和 更新
+                los_controller.get_usv_info(usv_ins)
+                los_controller.tick()
+                navigation_control = los_controller.navigation_control
+
+                logger.error(f"speed: {navigation_control.fForwardVel} "
+                             f"angle: {navigation_control.fTurnAngle} ")
 
                 motion_control: MotionControl = mission.motion_control
                 motion_control.usv_id = 1
                 motion_control.motion_control_mode = 3
-                motion_control.throttle_or_speed = 20
-                motion_control.rudder_angle_or_heading = 180
+                motion_control.throttle_or_speed = navigation_control.fForwardVel
+                motion_control.rudder_angle_or_heading = navigation_control.fTurnAngle
                 motion_control_str = motion_control.to_string()  # 类型转换
                 client.send_message(motion_control_str)  # 发送 usv 控制 指令
-                time.sleep(0.1)  # sleep 0.1s
+                time.sleep(0.5)  # sleep 0.1s
 
     else:
         raise AttributeError("singleton_instance is not initialized")

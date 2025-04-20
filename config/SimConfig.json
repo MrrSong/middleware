@@ -14,7 +14,7 @@
             "team": 0,
             "x_longtitude": 122.74624105974898,
             "y_latitude": 30.81392600827112,
-            "startAngle": 0,
+            "startAngle": 180,
             "health": 100,
             "gas_outputRate":100,
             "attack_radius": 200,

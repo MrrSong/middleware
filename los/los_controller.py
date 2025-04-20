@@ -70,12 +70,12 @@ class LOSController:
         for pts in path_pts:
             self.path_info.path.append(pts)
 
-        # 头结点 赋值
+        # 插入 usv 位置
         usv_point = Point(latitude=usv_ins.latitude, longitude=usv_ins.longitude)
         self.path_info.path.prepend(usv_point)
 
         # head -> 头结点
-        self.head = self.path_info.path.head
+        self.head = self.path_info.path.head.next
 
         # 创建当前航段
         self._update_single_path_info()
@@ -103,7 +103,6 @@ class LOSController:
             else:
                 self._update_single_path_info()
         else:
-
             self.navigation_control = self._get_line_tracking_control()
 
     def get_route_angle(self):
@@ -119,8 +118,8 @@ class LOSController:
         self._get_info_straight(start_point, end_point, self.ins_data, self.navigation_info)
 
     def _get_line_tracking_control(self):
-        f_full_speed = to_mps(SinglePathInfo.fSpeedK)
-        control = self._straight_line_tracking( f_full_speed)  # f_full_speed 单位:m/s
+        f_full_speed = to_mps(self.single_path_info.fSpeedK)
+        control = self._straight_line_tracking(f_full_speed)  # f_full_speed 单位:m/s
         return control
 
     def _straight_line_tracking(self, f_tracking_velocity: float):
@@ -229,8 +228,6 @@ class LOSController:
 
     def _calculate_optimal_yaw_error_by_los(self):
         f_look_ahead_distance = 50.0
-        f_los_line_angle = 0.0
-        f_track_line_los_line_angle = 0.0
         f_threshold_to_dest = 30.0
 
         if self.kind_of_delta == 0:
@@ -244,34 +241,34 @@ class LOSController:
             f_look_ahead_distance = (self.fMinAheadDist + (self.fMaxAheadDist - self.fMinAheadDist) *
                                      math.exp(self.factor_k * abs(self.boat_data.fLatDist) ** 3))
 
-            self.boat_data.fAngErr = calculate_angle_error_180(self.boat_data.fAngErr, 0)
+        self.boat_data.fAngErr = calculate_angle_error_180(self.boat_data.fAngErr, 0)
 
-            if -90.0 <= self.boat_data.fAngErr <= 90.0:
-                f_track_line_los_line_angle = calculate_angle_error_180(self.boat_data.fToDestAngle,
-                                                                        self.navigation_data.fTrackLineAngle)
-            elif self.boat_data.fToDestDist < f_threshold_to_dest:
-                f_track_line_los_line_angle = calculate_angle_error_180(self.boat_data.fToDestAngle,
-                                                                        self.navigation_data.fTrackLineAngle)
-            else:
-                f_tmp = self.boat_data.fLatDist
-                if self.kind_of_los_pre == 1:
-                    f_angle_error = calculate_angle_error_180(self.navigation_data.fTrackLineAngle,
-                                                              self.boat_data.fCurBoatYaw)
-                    f_predict_distance = self._calculate_predict_distance(f_angle_error)
-                    f_tmp = f_predict_distance
+        if -90.0 <= self.boat_data.fAngErr <= 90.0:
+            f_track_line_los_line_angle = calculate_angle_error_180(self.boat_data.fToDestAngle,
+                                                                    self.navigation_data.fTrackLineAngle)
+        elif self.boat_data.fToDestDist < f_threshold_to_dest:
+            f_track_line_los_line_angle = calculate_angle_error_180(self.boat_data.fToDestAngle,
+                                                                    self.navigation_data.fTrackLineAngle)
+        else:
+            f_tmp = self.boat_data.fLatDist
+            if self.kind_of_los_pre == 1:
+                f_angle_error = calculate_angle_error_180(self.navigation_data.fTrackLineAngle,
+                                                          self.boat_data.fCurBoatYaw)
+                f_predict_distance = self._calculate_predict_distance(f_angle_error)
+                f_tmp = f_predict_distance
 
-                f_k = 3.5
-                if self.iUseAccLatMethod == 1:
-                    f_tmp += f_k * self.fSumOfLatDist / self.iLength
+            f_k = 3.5
+            if self.iUseAccLatMethod == 1:
+                f_tmp += f_k * self.fSumOfLatDist / self.iLength
 
-                if f_tmp > 0:
-                    f_tmp += 0.0
-                f_track_line_los_line_angle = math.radians(math.atanh(f_tmp / f_look_ahead_distance))
+            if f_tmp > 0:
+                f_tmp += 0.0
+            f_track_line_los_line_angle = math.radians(math.atanh(f_tmp / f_look_ahead_distance))
 
-                if f_track_line_los_line_angle > 60.0:
-                    f_track_line_los_line_angle = 60.0
-                elif f_track_line_los_line_angle < -60.0:
-                    f_track_line_los_line_angle = -60.0
+            if f_track_line_los_line_angle > 60.0:
+                f_track_line_los_line_angle = 60.0
+            elif f_track_line_los_line_angle < -60.0:
+                f_track_line_los_line_angle = -60.0
 
         f_los_line_angle = self.navigation_data.fTrackLineAngle + f_track_line_los_line_angle  # Los线相对于正北方向夹角
         f_los_line_angle = calculate_angle_error_180(f_los_line_angle, 0)  # 将fLosLineAngle调整到 -180° - 180°
@@ -283,7 +280,7 @@ class LOSController:
         self.single_path_info.ucLineType = 1
         self.single_path_info.fFirstPoint = self.head.val
         self.single_path_info.fSecondPoint = self.head.next.val
-        self.single_path_info.fSpeedK = 20
+        self.single_path_info.fSpeedK = 10
         self.head = self.head.next
 
     def get_route_angle(self):
@@ -300,19 +297,22 @@ class LOSController:
         :param point2: geopy 的 Point 对象，终点
         :return: 方位角（以度为单位）
         """
-        _, forward_azimuth, _ = self.ge_od.inv(point1.longitude, point1.latitude, point2.longitude, point2.latitude)
-        if forward_azimuth < 0:
-            forward_azimuth += 360
-        return forward_azimuth
+        azimuth, _, _ = self.ge_od.inv(point1.longitude, point1.latitude, point2.longitude, point2.latitude)
+        azimuth = (azimuth + 360) % 360
+        return azimuth
 
     def _get_info_straight(self, start_point, end_point, ins_data, navigation_info):
         self.navigation_data.fFromPoint = start_point
         self.navigation_data.fDestPoint = end_point
         # 计算航迹线的方向
         f_azimuth = self.calculate_bearing(self.navigation_data.fFromPoint, self.navigation_data.fDestPoint)
-        f_distance = distance(self.navigation_data.fFromPoint, self.navigation_data.fDestPoint).miles
+        f_distance = distance(self.navigation_data.fFromPoint, self.navigation_data.fDestPoint).meters
+
+        logger.debug(f"f_azimuth {f_azimuth}")
 
         f_azimuth = calculate_angle_error_180(f_azimuth, 0.0)  # 转到 -180 - 180 范围内
+        logger.debug(f"f_azimuth {f_azimuth}")
+
         self.navigation_data.fTrackLineAngle = f_azimuth
         self.navigation_data.fTrackLineDist = f_distance
 
@@ -323,7 +323,7 @@ class LOSController:
         self.boat_data.fYawRate = ins_data.fHeadingRate
 
         f_azimuth_1 = self.calculate_bearing(self.boat_data.stGpsMyBoat, self.navigation_data.fDestPoint)
-        f_distance_1 = distance(self.boat_data.stGpsMyBoat, self.navigation_data.fDestPoint).miles
+        f_distance_1 = distance(self.boat_data.stGpsMyBoat, self.navigation_data.fDestPoint).meters
 
         # ang1出来之后是0~360度转到-180到180
         f_azimuth_1 = calculate_angle_error_180(f_azimuth_1, 0)
@@ -395,10 +395,10 @@ class LOSController:
         usv_point = ins_data.fPoint
 
         f_path_azimuth = self.calculate_bearing(from_point, dest_point)
-        f_path_distance = distance(from_point, dest_point).miles
+        f_path_distance = distance(from_point, dest_point).meters
 
         f_from_to_azimuth = self.calculate_bearing(from_point, usv_point)
-        f_from_to_usv_distance = distance(from_point, usv_point).miles
+        f_from_to_usv_distance = distance(from_point, usv_point).meters
 
         f_angle_error = abs(calculate_angle_error_180(f_path_azimuth - f_from_to_azimuth, 0))
 

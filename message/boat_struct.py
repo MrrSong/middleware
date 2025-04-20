@@ -78,6 +78,24 @@ class UsvPosture:
 
 
 @dataclass
+class PathPoint:
+    serial_num: int = 0          # 航点序号
+    x_m: float = 0.0             # x m/s
+    y_m: float = 0.0             # y m/s
+    feedback_flag: int = 0       # 报文反馈标志
+
+    def to_string(self) -> str:
+        params = [
+            12,
+            self.serial_num,
+            self.x_m,
+            self.y_m,
+            self.feedback_flag
+        ]
+        return f"[{', '.join(map(str, params))}]"
+
+
+@dataclass
 class Path:
     point_num: int = 0  # 航点个数
     path_points: List[LocalPoint] = field(default_factory=list)  # 航点信息
@@ -169,26 +187,26 @@ class BoatMessage:
     @staticmethod
     def from_packet(packet):
         return BoatMessage(
-            usv_id=packet[0],
-            longitude=packet[1],
-            latitude=packet[2],
-            yaw_angle=packet[3],
-            yaw_velocity=packet[4],
-            yaw_acceleration=packet[5],
-            pitch_angle=packet[6],
-            roll_angle=packet[7],
-            forward_speed=packet[8],
-            forward_acceleration=packet[9],
-            lateral_speed=packet[10],
-            lateral_acceleration=packet[11],
-            heading_angle=packet[12],
-            current_state=packet[13],
-            task_type=packet[14],
-            target_id=packet[15],
-            control_mode=packet[16],
-            current_control_value=packet[17],
-            current_throttle=packet[18],
-            health=packet[19]
+            usv_id=int(packet[0]),
+            longitude=float(packet[1]),
+            latitude=float(packet[2]),
+            yaw_angle=float(packet[3]),
+            yaw_velocity=float(packet[4]),
+            yaw_acceleration=float(packet[5]),
+            pitch_angle=float(packet[6]),
+            roll_angle=float(packet[7]),
+            forward_speed=float(packet[8]),
+            forward_acceleration=float(packet[9]),
+            lateral_speed=float(packet[10]),
+            lateral_acceleration=float(packet[11]),
+            heading_angle=float(packet[12]),
+            current_state=int(packet[13]),
+            task_type=int(packet[14]),
+            target_id=int(packet[15]),
+            control_mode=int(packet[16]),
+            current_control_value=float(packet[17]),
+            current_throttle=float(packet[18]),
+            health=float(packet[19])
         )
 
     def to_string(self) -> str:
